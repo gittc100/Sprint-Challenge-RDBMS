@@ -1,15 +1,15 @@
 // import requirements
 const express = require("express");
 const knex = require("knex");
-const knexConfig = require("../knexfile.js");
+const knexConfig = require("../knexfile");
 // create server instance
 const server = express();
 server.use(express.json());
 const db = knex(knexConfig.development);
 // Middleware
-const morgan = require("morgan");
-const helmet = require("helmet");
-const cors = require("cors");
+// const morgan = require("morgan");
+// const helmet = require("helmet");
+// const cors = require("cors");
 //Helper Functions
 const serverError = res => err => {
   res.status(500).json(err);
@@ -21,30 +21,35 @@ const postSuccess = res => id => {
   res.status(201).json(id);
 };
 //Routing
+server.get("/", (req, res) => {
+  res.status(200).json({ message: "working" });
+});
 // Retrieve all Projects
-server.get("/api/projects", (res, req) => {
+server.get("/api/projects", (req, res) => {
   db("projects")
-    .then(getSuccess(res))
+    .then(data => {
+      res.status(200).json(data);
+    })
     .catch(serverError(res));
 });
 // Retrieve project by id with associated actions
-server.get("/api/projects/:project_id", (res, req) => {
+server.get("/api/projects/:project_id", (req, res) => {
   db.select(
-    "p.id",
-    "p.name",
-    "p.description",
-    "p.completed",
-    "a.id",
-    "a.description",
-    "a.notes",
-    "a.completed"
+    "p.id as Project_ID",
+    "p.name as Project_Name",
+    "p.description as Project_Description",
+    "p.completed as Project_Completed",
+    "Actions"
+    
   )
     .from("projects as p")
     .innerJoin("actions as a", "a.project_id", "=", "p.id")
-    .where({ "p.id": req.params.id })
+    .where({ "p.id": req.params.project_id })
+    .options({ nestTables: true, rowMode: "array" })
     .then(data => {
       if (data.length > 0) {
-        getSuccess(res);
+        console.log(data[0].Project_ID);
+        res.status(201).json(data);
       } else {
         res.status(404).json({ message: "Project not found" });
       }
@@ -53,29 +58,34 @@ server.get("/api/projects/:project_id", (res, req) => {
 });
 // post project
 server.post("/api/projects", (req, res) => {
-    const {id, name, description, completed} = req.body;
-    if (!(id, name, description, completed)) {
-        res.status(500).json({ Error_Message: "Provide Name" });
-      } else {
-        db('projects')
-          .insert(req.body)
-          .then(postSuccess(res))
-          .catch(serverError(res));
-      }
+  const { name, description, completed } = req.body;
+  if (!(name || description || completed)) {
+    res.status(500).json({ Error_Message: "Provide Name" });
+  } else {
+    db("projects")
+      .insert(req.body)
+      .then(postSuccess(res))
+      .catch(serverError(res));
+  }
 });
 
 // post action
 server.post("/api/actions", (req, res) => {
-    const {id, notes, description, completed, project_id} = req.body;
-    if (!(id, notes, description, completed, project_id)) {
-        res.status(500).json({ Error_Message: "Provide Name" });
-      } else {
-        db('actions')
-          .insert(req.body)
-          .then(postSuccess(res))
-          .catch(serverError(res));
-      }
+  const { notes, description, completed, project_id } = req.body;
+  if (!(notes || description || completed || project_id)) {
+    res.status(500).json({ Error_Message: "Provide Name" });
+  } else {
+    db("actions")
+      .insert(req.body)
+      .then(postSuccess(res))
+      .catch(serverError(res));
+  }
 });
 
 // export server for index.js use
 module.exports = server;
+
+// "a.id as Action_ID",
+//     "a.description as Action_Description",
+//     "a.notes as Action_Notes",
+//     "a.completed as Action_Completed"

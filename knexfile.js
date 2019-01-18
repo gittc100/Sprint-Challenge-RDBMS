@@ -4,7 +4,7 @@ module.exports = {
     client: 'sqlite3',
     connection: {
       filename: './RDBMS_Sprint.sqlite3'
-    }
-  },
-  useNullAsDefault: true
+    },
+    useNullAsDefault: true
+  }
 };

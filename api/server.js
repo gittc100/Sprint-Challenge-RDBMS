@@ -34,18 +34,21 @@ server.get("/api/projects", (req, res) => {
 });
 // Retrieve project by id with associated actions
 server.get("/api/projects/:project_id", (req, res) => {
-  db.select(
+  db
+  .select(
     "p.id as Project_ID",
     "p.name as Project_Name",
     "p.description as Project_Description",
     "p.completed as Project_Completed",
-    "Actions"
-    
+    "p.actions as Actions:",
+
   )
-    .from("projects as p")
-    .innerJoin("actions as a", "a.project_id", "=", "p.id")
-    .where({ "p.id": req.params.project_id })
-    .options({ nestTables: true, rowMode: "array" })
+    .from("projects as p").where({ "p.id": req.params.project_id })
+    .innerJoin("actions as a", function() {
+      this.on({ "a.project_id": "p.id" });
+    })
+    
+
     .then(data => {
       if (data.length > 0) {
         console.log(data[0].Project_ID);
@@ -89,3 +92,7 @@ module.exports = server;
 //     "a.description as Action_Description",
 //     "a.notes as Action_Notes",
 //     "a.completed as Action_Completed"
+// .onIn("p.actions", ["a.id"])
+// .column(['a.notes', 'a.description', 'a.completed'])
+    // .where({ "p.actions": "a.notes" })
+    // .options({ nestTables: true, rowMode: "array" })

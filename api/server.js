@@ -34,30 +34,29 @@ server.get("/api/projects", (req, res) => {
 });
 // Retrieve project by id with associated actions
 server.get("/api/projects/:project_id", (req, res) => {
-  db
-  .select(
-    "p.id as Project_ID",
-    "p.name as Project_Name",
-    "p.description as Project_Description",
-    "p.completed as Project_Completed",
-    "p.actions as Actions:",
-
-  )
-    .from("projects as p").where({ "p.id": req.params.project_id })
-    .innerJoin("actions as a", function() {
-      this.on({ "a.project_id": "p.id" });
-    })
-    
-
-    .then(data => {
-      if (data.length > 0) {
-        console.log(data[0].Project_ID);
-        res.status(201).json(data);
-      } else {
-        res.status(404).json({ message: "Project not found" });
-      }
-    })
-    .catch(serverError(res));
+    db.select(
+      "p.id as Project_ID",
+      "p.name as Project_Name",
+      "p.description as Project_Description",
+      "p.completed as Project_Completed"
+    )
+      .from("projects as p")
+      .where({ "p.id": req.params.project_id })
+      .then(data => {
+        if (data.length > 0) {
+          db.select("a.notes", "a.description", "a.completed")
+          .from("actions as a")
+          .where({ "a.project_id": req.params.project_id })
+          .then(newData => {
+            data[0]["Actions"] = newData;
+          }).then(()=>{
+            res.status(200).json(data);
+          });
+        } else {
+          res.status(404).json({ message: "Project not found" });
+        }
+      })
+      .catch(serverError(res));
 });
 // post project
 server.post("/api/projects", (req, res) => {
@@ -71,7 +70,6 @@ server.post("/api/projects", (req, res) => {
       .catch(serverError(res));
   }
 });
-
 // post action
 server.post("/api/actions", (req, res) => {
   const { notes, description, completed, project_id } = req.body;
@@ -88,11 +86,5 @@ server.post("/api/actions", (req, res) => {
 // export server for index.js use
 module.exports = server;
 
-// "a.id as Action_ID",
-//     "a.description as Action_Description",
-//     "a.notes as Action_Notes",
-//     "a.completed as Action_Completed"
-// .onIn("p.actions", ["a.id"])
-// .column(['a.notes', 'a.description', 'a.completed'])
-    // .where({ "p.actions": "a.notes" })
-    // .options({ nestTables: true, rowMode: "array" })
+
+
